@@ -6,7 +6,7 @@
   An AI assistant that runs agents securely in their own containers. Lightweight, built to be easily understood and completely customized for your needs.
 </p>
 
-> **PriseClaw fork:** this repository is now rebased around NanoClaw and customized toward a private Raspberry Pi personal secretary. Start with the upstream NanoClaw setup below, then read [docs/priseclaw-private-secretary.md](docs/priseclaw-private-secretary.md) and [docs/priseclaw-migration.md](docs/priseclaw-migration.md).
+> **PriseClaw fork:** this repository is now rebased around NanoClaw and customized toward a private Raspberry Pi personal secretary. Start with the upstream NanoClaw setup below, then read [docs/priseclaw-private-secretary.md](docs/priseclaw-private-secretary.md), [docs/priseclaw-customizations.md](docs/priseclaw-customizations.md), and [docs/priseclaw-migration.md](docs/priseclaw-migration.md).
 
 <p align="center">
   <a href="https://nanoclaw.dev">nanoclaw.dev</a>&nbsp; • &nbsp;
