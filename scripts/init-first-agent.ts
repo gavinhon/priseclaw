@@ -48,6 +48,7 @@ import { addMember } from '../src/modules/permissions/db/agent-group-members.js'
 import { getUserRoles, grantRole } from '../src/modules/permissions/db/user-roles.js';
 import { upsertUser } from '../src/modules/permissions/db/users.js';
 import { initGroupFilesystem } from '../src/group-init.js';
+import { readEnvFile } from '../src/env.js';
 import { namespacedPlatformId } from '../src/platform-id.js';
 import type { AgentGroup, MessagingGroup } from '../src/types.js';
 
@@ -142,6 +143,16 @@ function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function defaultAgentProvider(): string | null {
+  const env = readEnvFile(['NANOCLAW_AGENT_PROVIDER', 'OPENCODE_PROVIDER', 'OPENAI_API_KEY']);
+  const explicit = process.env.NANOCLAW_AGENT_PROVIDER || env.NANOCLAW_AGENT_PROVIDER;
+  if (explicit?.trim()) return explicit.trim().toLowerCase();
+  if (process.env.OPENCODE_PROVIDER || env.OPENCODE_PROVIDER || process.env.OPENAI_API_KEY || env.OPENAI_API_KEY) {
+    return 'opencode';
+  }
+  return null;
+}
+
 function wireIfMissing(mg: MessagingGroup, ag: AgentGroup, now: string, label: string): void {
   const existing = getMessagingGroupAgentByPair(mg.id, ag.id);
   if (existing) {
@@ -188,6 +199,7 @@ async function main(): Promise<void> {
 
   // 2. Agent group + filesystem.
   const folder = `dm-with-${normalizeName(args.displayName)}`;
+  const provider = defaultAgentProvider();
   let ag: AgentGroup | undefined = getAgentGroupByFolder(folder);
   if (!ag) {
     const agId = generateId('ag');
@@ -195,7 +207,7 @@ async function main(): Promise<void> {
       id: agId,
       name: args.agentName,
       folder,
-      agent_provider: null,
+      agent_provider: provider,
       created_at: now,
     });
     ag = getAgentGroupByFolder(folder)!;
@@ -204,6 +216,7 @@ async function main(): Promise<void> {
     console.log(`Reusing agent group: ${ag.id} (${folder})`);
   }
   initGroupFilesystem(ag, {
+    provider,
     instructions:
       `# ${args.agentName}\n\n` +
       `You are ${args.agentName}, a personal NanoClaw agent for ${args.displayName}. ` +
