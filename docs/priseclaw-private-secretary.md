@@ -67,14 +67,57 @@ Install base packages:
 ```bash
 sudo apt-get update
 sudo apt-get upgrade -y
-sudo apt-get install -y git curl ca-certificates nano
+sudo apt-get install -y git curl ca-certificates nano unzip rsync
 ```
 
-Clone this fork:
+If the repo is public, clone this fork:
 
 ```bash
 git clone https://github.com/gavinhon/priseclaw.git
 cd priseclaw
+```
+
+If the repo is private or you are copying it over as the project owner, upload the project folder or a zip archive to the Pi and place it at:
+
+```text
+/home/ghon/priseclaw
+```
+
+For FTP/SFTP deployments, copy the whole project folder contents except local dependency/build caches:
+
+```text
+copy:
+  package.json
+  pnpm-lock.yaml
+  nanoclaw.sh
+  setup.sh
+  setup/
+  src/
+  container/
+  docs/
+  data/env/        # only if you intentionally manage env here
+  .env            # private owner-only file, never commit this
+
+do not copy:
+  node_modules/
+  dist/
+  logs/
+  .git/           # optional; omit when deploying an archive
+```
+
+After copying, SSH into the Pi and run:
+
+```bash
+cd /home/ghon/priseclaw
+find . -type f \( -name '*.sh' -o -name 'nanoclaw.sh' -o -path './.husky/*' -o -path './.claude/skills/*/scripts/*' \) -print0 | xargs -0 sed -i 's/\r$//'
+chmod +x nanoclaw.sh setup.sh setup/*.sh container/*.sh 2>/dev/null || true
+corepack enable
+corepack prepare pnpm@10.33.0 --activate
+pnpm install
+pnpm run typecheck
+pnpm run build
+mkdir -p data/env
+cp .env data/env/env
 ```
 
 Run NanoClaw setup:
@@ -93,6 +136,8 @@ The setup flow installs or checks:
 - the selected channel
 - your first agent
 
+`nanoclaw.sh` is intentionally interactive. Run it from an SSH terminal you can watch because it may ask you to choose a channel, authenticate an online model provider, paste a Telegram token, and send a pairing code to the bot.
+
 ## Telegram-First Private Setup
 
 During setup:
@@ -105,6 +150,18 @@ During setup:
 6. Choose owner/admin role for yourself.
 
 Do not add the bot to group chats at first. Keep it as a private DM until you are happy with the behavior.
+
+Privacy checklist:
+
+- Keep `TELEGRAM_BOT_TOKEN` only in `.env` and `data/env/env`.
+- Pair only your own Telegram account as the owner.
+- Do not invite the bot into public or shared group chats.
+- If you later add group chats, keep NanoClaw's unknown-sender policy strict or approval-based.
+- Keep `/home/ghon/priseclaw` owned by the Pi user and do not make `.env` world-readable.
+
+```bash
+chmod 600 /home/ghon/priseclaw/.env /home/ghon/priseclaw/data/env/env
+```
 
 ## No Email Access
 
@@ -130,6 +187,18 @@ You are PriseClaw, my private personal secretary. Help me keep track of reminder
 ```
 
 NanoClaw will store the instruction in the agent's memory/workspace instead of relying on the old hardcoded parser.
+
+## Online Model Provider
+
+PriseClaw should not run a local LLM on the Raspberry Pi. Use an online provider.
+
+NanoClaw's base path uses Claude/Anthropic through OneCLI. If you want to use OpenAI instead, add the NanoClaw OpenAI/Codex provider skill after the base setup:
+
+```text
+/add-codex
+```
+
+Then configure it with your existing `OPENAI_API_KEY` from `.env`. Keep the key on the Pi only; do not commit it.
 
 ## Reminders And Briefings
 
@@ -234,6 +303,37 @@ bash nanoclaw.sh
 
 For logs, follow NanoClaw setup output and `logs/`.
 
+Owner maintenance checklist:
+
+```bash
+cd /home/ghon/priseclaw
+pnpm install
+pnpm run typecheck
+pnpm run build
+docker image ls | grep nanoclaw
+systemctl status priseclaw 2>/dev/null || systemctl --user status priseclaw 2>/dev/null || true
+```
+
+When deploying a new archive over FTP/SFTP:
+
+1. Stop the current service if it exists:
+
+   ```bash
+   sudo systemctl stop priseclaw 2>/dev/null || systemctl --user stop priseclaw 2>/dev/null || true
+   ```
+
+2. Back up the current install and `.env`:
+
+   ```bash
+   ts=$(date +%Y%m%d-%H%M%S)
+   cp -a /home/ghon/priseclaw "/home/ghon/priseclaw-backup-$ts"
+   cp /home/ghon/priseclaw/.env "/home/ghon/priseclaw.env.backup-$ts"
+   ```
+
+3. Replace the project files, restore `.env`, and copy it into `data/env/env`.
+4. Run `pnpm install`, `pnpm run typecheck`, and `pnpm run build`.
+5. Re-run `bash nanoclaw.sh` if setup, pairing, provider, or service wiring changed.
+
 ## Migration Notes From Old PriseClaw
 
 Old local data lived under:
@@ -252,4 +352,3 @@ logs/
 ```
 
 Do not blindly copy old JSON reminder files into NanoClaw. Instead, paste important reminders/notes into the Telegram DM and ask PriseClaw to store them in its workspace or schedule them with NanoClaw's native scheduler.
-
