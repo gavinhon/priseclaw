@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { DATA_DIR, GROUPS_DIR } from './config.js';
-import { initContainerConfig } from './container-config.js';
+import { initContainerConfig, updateContainerConfig } from './container-config.js';
 import { log } from './log.js';
 import type { AgentGroup } from './types.js';
 
@@ -34,7 +34,10 @@ const DEFAULT_SETTINGS_JSON =
  * spawn by `composeGroupClaudeMd()` (see `claude-md-compose.ts`). Initial
  * per-group instructions (if provided) seed `CLAUDE.local.md`.
  */
-export function initGroupFilesystem(group: AgentGroup, opts?: { instructions?: string }): void {
+export function initGroupFilesystem(
+  group: AgentGroup,
+  opts?: { instructions?: string; provider?: string | null },
+): void {
   const initialized: string[] = [];
 
   // 1. groups/<folder>/ — group memory + working dir
@@ -58,6 +61,13 @@ export function initGroupFilesystem(group: AgentGroup, opts?: { instructions?: s
   // read and write this file directly.
   if (initContainerConfig(group.folder)) {
     initialized.push('container.json');
+  }
+
+  if (opts?.provider) {
+    updateContainerConfig(group.folder, (config) => {
+      if (!config.provider) config.provider = opts.provider!;
+    });
+    initialized.push('provider');
   }
 
   // 2. data/v2-sessions/<id>/.claude-shared/ — Claude state + per-group skills

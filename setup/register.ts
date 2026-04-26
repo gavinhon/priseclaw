@@ -19,6 +19,7 @@ import {
 } from '../src/db/messaging-groups.js';
 import { isValidGroupFolder } from '../src/group-folder.js';
 import { initGroupFilesystem } from '../src/group-init.js';
+import { readEnvFile } from '../src/env.js';
 import { log } from '../src/log.js';
 import { namespacedPlatformId } from '../src/platform-id.js';
 import { resolveSession, writeSessionMessage } from '../src/session-manager.js';
@@ -91,6 +92,16 @@ function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function defaultAgentProvider(): string | null {
+  const env = readEnvFile(['NANOCLAW_AGENT_PROVIDER', 'OPENCODE_PROVIDER', 'OPENAI_API_KEY']);
+  const explicit = process.env.NANOCLAW_AGENT_PROVIDER || env.NANOCLAW_AGENT_PROVIDER;
+  if (explicit?.trim()) return explicit.trim().toLowerCase();
+  if (process.env.OPENCODE_PROVIDER || env.OPENCODE_PROVIDER || process.env.OPENAI_API_KEY || env.OPENAI_API_KEY) {
+    return 'opencode';
+  }
+  return null;
+}
+
 export async function run(args: string[]): Promise<void> {
   const projectRoot = process.cwd();
   const parsed = parseArgs(args);
@@ -128,19 +139,20 @@ export async function run(args: string[]): Promise<void> {
 
   // 1. Create or find agent group
   let agentGroup = getAgentGroupByFolder(parsed.folder);
+  const provider = defaultAgentProvider();
   if (!agentGroup) {
     const agId = generateId('ag');
     createAgentGroup({
       id: agId,
       name: parsed.assistantName,
       folder: parsed.folder,
-      agent_provider: null,
+      agent_provider: provider,
       created_at: new Date().toISOString(),
     });
     agentGroup = getAgentGroupByFolder(parsed.folder)!;
     log.info('Created agent group', { id: agId, folder: parsed.folder });
   }
-  initGroupFilesystem(agentGroup);
+  initGroupFilesystem(agentGroup, { provider });
 
   // 2. Create or find messaging group
   let messagingGroup = getMessagingGroupByPlatform(parsed.channel, parsed.platformId);

@@ -32,6 +32,7 @@ import { runMigrations } from '../src/db/migrations/index.js';
 import { normalizeName } from '../src/modules/agent-to-agent/db/agent-destinations.js';
 import { upsertUser } from '../src/modules/permissions/db/users.js';
 import { initGroupFilesystem } from '../src/group-init.js';
+import { readEnvFile } from '../src/env.js';
 import type { AgentGroup, MessagingGroup } from '../src/types.js';
 
 const CLI_CHANNEL = 'cli';
@@ -74,6 +75,16 @@ function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function defaultAgentProvider(): string | null {
+  const env = readEnvFile(['NANOCLAW_AGENT_PROVIDER', 'OPENCODE_PROVIDER', 'OPENAI_API_KEY']);
+  const explicit = process.env.NANOCLAW_AGENT_PROVIDER || env.NANOCLAW_AGENT_PROVIDER;
+  if (explicit?.trim()) return explicit.trim().toLowerCase();
+  if (process.env.OPENCODE_PROVIDER || env.OPENCODE_PROVIDER || process.env.OPENAI_API_KEY || env.OPENAI_API_KEY) {
+    return 'opencode';
+  }
+  return null;
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
@@ -96,6 +107,7 @@ async function main(): Promise<void> {
 
   // 2. Agent group + filesystem.
   const folder = `cli-with-${normalizeName(args.displayName)}`;
+  const provider = defaultAgentProvider();
   let ag: AgentGroup | undefined = getAgentGroupByFolder(folder);
   if (!ag) {
     const agId = generateId('ag');
@@ -103,7 +115,7 @@ async function main(): Promise<void> {
       id: agId,
       name: args.agentName,
       folder,
-      agent_provider: null,
+      agent_provider: provider,
       created_at: now,
     });
     ag = getAgentGroupByFolder(folder)!;
@@ -112,6 +124,7 @@ async function main(): Promise<void> {
     console.log(`Reusing agent group: ${ag.id} (${folder})`);
   }
   initGroupFilesystem(ag, {
+    provider,
     instructions:
       `# ${args.agentName}\n\n` +
       `You are ${args.agentName}, a personal NanoClaw agent for ${args.displayName}. ` +

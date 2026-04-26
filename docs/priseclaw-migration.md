@@ -84,13 +84,13 @@ Choose Telegram as the first channel, pair your own account, and name the first 
 
 Old PriseClaw needed only Node.js.
 
-NanoClaw needs:
+PriseClaw's NanoClaw base needs:
 
 - Node.js 20+
 - pnpm 10+
 - Docker
 - OneCLI
-- Claude/Anthropic credentials
+- OpenAI API credentials through OpenCode/OneCLI, or Claude/Anthropic credentials if you choose to switch back to the upstream default
 
 The setup script handles most of this on a clean Linux/Raspberry Pi install.
 

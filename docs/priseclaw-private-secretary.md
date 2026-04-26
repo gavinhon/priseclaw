@@ -192,13 +192,22 @@ NanoClaw will store the instruction in the agent's memory/workspace instead of r
 
 PriseClaw should not run a local LLM on the Raspberry Pi. Use an online provider.
 
-NanoClaw's base path uses Claude/Anthropic through OneCLI. If you want to use OpenAI instead, add the NanoClaw OpenAI/Codex provider skill after the base setup:
+This PriseClaw fork is wired for NanoClaw's OpenCode provider so it can use an OpenAI API key instead of requiring Claude/Anthropic.
 
-```text
-/add-codex
+Recommended `.env` values:
+
+```env
+OPENAI_API_KEY=sk-...
+NANOCLAW_AGENT_PROVIDER=opencode
+OPENCODE_PROVIDER=openai
+OPENCODE_MODEL=openai/gpt-4.1-mini
+OPENCODE_SMALL_MODEL=openai/gpt-4.1-mini
+ANTHROPIC_BASE_URL=https://api.openai.com/v1
 ```
 
-Then configure it with your existing `OPENAI_API_KEY` from `.env`. Keep the key on the Pi only; do not commit it.
+The `ANTHROPIC_BASE_URL` name is inherited from NanoClaw/OpenCode's provider bridge; for this setup it points to OpenAI's API base URL.
+
+During setup, PriseClaw detects `OPENAI_API_KEY`, registers it with OneCLI for `api.openai.com`, and skips the Claude auth prompt. Keep the key on the Pi only; do not commit it.
 
 ## Reminders And Briefings
 

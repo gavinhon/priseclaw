@@ -38,6 +38,7 @@ import { brightSelect } from './lib/bright-select.js';
 import { offerClaudeAssist } from './lib/claude-assist.js';
 import { runWindowedStep } from './lib/windowed-runner.js';
 import { getLaunchdLabel, getSystemdUnit } from '../src/install-slug.js';
+import { readEnvFile } from '../src/env.js';
 import {
   claudeCliAvailable,
   resolveTimezoneViaClaude,
@@ -580,6 +581,13 @@ function sendChatMessage(message: string): Promise<void> {
 // ─── auth step (select → branch) ────────────────────────────────────────
 
 async function runAuthStep(): Promise<void> {
+  const openai = ensureOpenAISecretForOpenCode();
+  if (openai === 'configured') {
+    p.log.success('OpenAI/OpenCode credentials are configured.');
+    setupLog.step('auth', 'skipped', 0, { REASON: 'openai-opencode-configured' });
+    return;
+  }
+
   if (anthropicSecretExists()) {
     p.log.success('Your Claude account is already connected.');
     setupLog.step('auth', 'skipped', 0, { REASON: 'secret-already-present' });
@@ -872,6 +880,7 @@ function anthropicSecretExists(): boolean {
   try {
     const res = spawnSync('onecli', ['secrets', 'list'], {
       encoding: 'utf-8',
+      env: onecliEnv(),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     if (res.status !== 0) return false;
@@ -879,6 +888,66 @@ function anthropicSecretExists(): boolean {
   } catch {
     return false;
   }
+}
+
+function onecliEnv(): NodeJS.ProcessEnv {
+  const localBin = process.env.HOME ? `${process.env.HOME}/.local/bin` : '';
+  return {
+    ...process.env,
+    PATH: localBin ? `${localBin}:${process.env.PATH ?? ''}` : process.env.PATH,
+  };
+}
+
+function ensureOpenAISecretForOpenCode(): 'configured' | 'missing' {
+  const env = readEnvFile(['OPENAI_API_KEY', 'OPENCODE_PROVIDER']);
+  const key = process.env.OPENAI_API_KEY || env.OPENAI_API_KEY;
+  const wantsOpenCode =
+    process.env.NANOCLAW_AGENT_PROVIDER === 'opencode' ||
+    process.env.OPENCODE_PROVIDER === 'openai' ||
+    env.OPENCODE_PROVIDER === 'openai' ||
+    !!key;
+
+  if (!wantsOpenCode || !key) return 'missing';
+
+  try {
+    const list = spawnSync('onecli', ['secrets', 'list'], {
+      encoding: 'utf-8',
+      env: onecliEnv(),
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    if (list.status === 0 && /api\.openai\.com|OpenAI/i.test(list.stdout ?? '')) {
+      return 'configured';
+    }
+  } catch {
+    return 'missing';
+  }
+
+  const created = spawnSync(
+    'onecli',
+    [
+      'secrets',
+      'create',
+      '--name',
+      'OpenAI',
+      '--type',
+      'generic',
+      '--value',
+      key,
+      '--host-pattern',
+      'api.openai.com',
+      '--header-name',
+      'Authorization',
+      '--value-format',
+      'Bearer {value}',
+    ],
+    {
+      encoding: 'utf-8',
+      env: onecliEnv(),
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+
+  return created.status === 0 ? 'configured' : 'missing';
 }
 
 /**
