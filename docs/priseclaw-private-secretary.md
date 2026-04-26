@@ -67,7 +67,7 @@ Install base packages:
 ```bash
 sudo apt-get update
 sudo apt-get upgrade -y
-sudo apt-get install -y git curl ca-certificates nano unzip rsync
+sudo apt-get install -y git curl ca-certificates nano unzip rsync docker-compose
 ```
 
 If the repo is public, clone this fork:
