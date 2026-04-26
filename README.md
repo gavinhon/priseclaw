@@ -4,6 +4,33 @@ PriseClaw is a privacy-first personal secretary bot designed to run on a Raspber
 
 For a gist-style project overview, see [GIST.md](GIST.md).
 
+## Skill Runtime
+
+PriseClaw now routes messages through registered skills, closer to the OpenClaw/NanoClaw style:
+
+```text
+message -> skill registry -> matching skill -> local service/action -> reply
+```
+
+Skills live in:
+
+```text
+src/skills/
+```
+
+Current skills:
+
+- `help`
+- `notes`
+- `reminders`
+- `calendar`
+- `search`
+- `markdown`
+- `updates`
+- `proactive`
+
+The older service files still exist, but they are lower-level building blocks. User-facing behavior is selected through skills.
+
 ## Privacy Model
 
 - Telegram access is blocked unless the sender's numeric user ID is in `ALLOWED_TELEGRAM_USER_IDS`.
@@ -98,6 +125,7 @@ PriseClaw can do scheduled work on its own, but only from explicit local configu
 - Obsidian-compatible Markdown export under `data/obsidian/`
 - local search across notes, reminders, and events
 - optional website, RSS, and GitHub update checks from `config/update-checks.json`
+- proactive check-ins from `config/proactive.json`
 
 It does not access email, message other people, or run arbitrary tools.
 

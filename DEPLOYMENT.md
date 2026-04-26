@@ -146,6 +146,7 @@ The Pi needs these files and folders:
 
 ```text
 src/
+src/skills/
 config/
 scripts/
 package.json
@@ -232,6 +233,7 @@ You should upload:
 
 ```text
 src/
+src/skills/
 config/
 scripts/
 package.json
@@ -372,6 +374,12 @@ If another Telegram user messages the bot, the bot will ignore them and write a 
 ## Phase 8: Test Core Secretary Features
 
 Send these messages to the bot:
+
+```text
+skills
+```
+
+The bot should list the registered skills.
 
 ```text
 note Ben prefers email, not calls
@@ -718,6 +726,52 @@ check updates now
 ```
 
 The first run records a baseline. Later runs notify you when a fingerprint changes.
+
+## Phase 14: Proactive Check-Ins
+
+PriseClaw can start bounded conversations with you from local context.
+
+Edit:
+
+```bash
+nano config/proactive.json
+```
+
+Example:
+
+```json
+{
+  "enabled": true,
+  "checkIns": [
+    {
+      "id": "morning-focus",
+      "enabled": true,
+      "time": "08:30",
+      "prompt": "Ask what the user's top priority is today. Mention the next reminder or calendar event if there is one."
+    }
+  ],
+  "staleReminderNudge": {
+    "enabled": true,
+    "time": "18:00",
+    "minimumAgeHours": 24
+  }
+}
+```
+
+After editing:
+
+```bash
+sudo systemctl restart priseclaw
+```
+
+From Telegram:
+
+```text
+proactive status
+proactive now
+```
+
+This is not unrestricted autonomy. It only talks to you at configured times and only uses local reminders, calendar events, notes, and configured update checks.
 
 ## Privacy Checklist
 

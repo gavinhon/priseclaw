@@ -1,0 +1,22 @@
+{
+  "enabled": true,
+  "checkIns": [
+    {
+      "id": "morning-focus",
+      "enabled": true,
+      "time": "08:30",
+      "prompt": "Ask what the user's top priority is today. Mention the next reminder or calendar event if there is one."
+    },
+    {
+      "id": "evening-review",
+      "enabled": false,
+      "time": "21:30",
+      "prompt": "Ask whether anything from today should be captured as a note, reminder, or calendar event."
+    }
+  ],
+  "staleReminderNudge": {
+    "enabled": true,
+    "time": "18:00",
+    "minimumAgeHours": 24
+  }
+}

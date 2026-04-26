@@ -10,6 +10,7 @@ export class Storage {
     this.remindersPath = path.join(dataDir, "reminders.json");
     this.eventsPath = path.join(dataDir, "events.json");
     this.updateStatePath = path.join(dataDir, "update-state.json");
+    this.proactiveStatePath = path.join(dataDir, "proactive-state.json");
     this.audioDir = path.join(dataDir, "audio");
     this.obsidianDir = path.join(dataDir, "obsidian");
     ensureDir(this.audioDir);
@@ -95,5 +96,13 @@ export class Storage {
 
   saveUpdateState(state) {
     writeJsonFile(this.updateStatePath, state);
+  }
+
+  getProactiveState() {
+    return readJsonFile(this.proactiveStatePath, {});
+  }
+
+  saveProactiveState(state) {
+    writeJsonFile(this.proactiveStatePath, state);
   }
 }

@@ -29,6 +29,7 @@ The design is inspired by NanoClaw's Raspberry Pi assistant idea, but simplified
 - online reasoning API optional
 - no local LLM requirement
 - bounded autonomy through local calendar, recurring reminders, Markdown export, search, and configured update checks
+- OpenClaw/NanoClaw-style skill registry for user-facing capabilities
 
 ---
 
@@ -75,9 +76,17 @@ Allowlist gate
 Local message store
           |
           v
-Rule-based parser
+Skill registry
           |
-          +---- optional online reasoning API
+          +---- notes skill
+          +---- reminders skill
+          +---- calendar skill
+          +---- search skill
+          +---- markdown skill
+          +---- updates skill
+          +---- proactive skill
+          |
+          +---- optional online reasoning fallback
           |
           v
 Local actions
@@ -219,11 +228,23 @@ src/
   markdown.js        Obsidian-compatible export
   search.js          local search
   updateChecks.js    website/RSS/GitHub change checks
+  proactive.js       proactive check-in engine
   config.js          .env loading
   utils.js           helpers
 
+src/skills/
+  registry.js
+  notes.skill.js
+  reminders.skill.js
+  calendar.skill.js
+  search.skill.js
+  markdown.skill.js
+  updates.skill.js
+  proactive.skill.js
+
 config/
   update-checks.json
+  proactive.json
 
 scripts/
   install-rpi.sh

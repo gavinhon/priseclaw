@@ -1,4 +1,5 @@
 import { dailyBriefing, dueReminders } from "./assistant.js";
+import { runProactiveChecks } from "./proactive.js";
 import { runDueUpdateChecks } from "./updateChecks.js";
 import { getLocalParts, todayKey } from "./utils.js";
 
@@ -9,6 +10,7 @@ export class Scheduler {
     this.telegram = telegram;
     this.lastBriefingKey = "";
     this.updateCheckRunning = false;
+    this.proactiveRunning = false;
   }
 
   start() {
@@ -24,6 +26,7 @@ export class Scheduler {
     await this.sendDueReminders();
     await this.sendDailyBriefing();
     await this.sendUpdateCheckNotices();
+    await this.sendProactiveMessages();
   }
 
   async sendDueReminders() {
@@ -53,6 +56,19 @@ export class Scheduler {
       }
     } finally {
       this.updateCheckRunning = false;
+    }
+  }
+
+  async sendProactiveMessages() {
+    if (this.proactiveRunning) return;
+    this.proactiveRunning = true;
+    try {
+      const messages = await runProactiveChecks(this.storage, this.config);
+      for (const message of messages) {
+        await this.telegram.broadcastAllowed(message);
+      }
+    } finally {
+      this.proactiveRunning = false;
     }
   }
 }
