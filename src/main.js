@@ -53,9 +53,18 @@ async function extractText(message) {
       fileId: voice.file_id,
       audioDir: storage.audioDir
     });
-    const transcript = await transcribeAudio(audioPath, config);
-    if (transcript) return transcript;
-    return `Voice note saved locally at ${audioPath}, but transcription is not configured.`;
+    try {
+      const transcript = await transcribeAudio(audioPath, config);
+      if (transcript) return transcript;
+      return `Voice note saved locally at ${audioPath}, but transcription is not configured.`;
+    } catch (error) {
+      storage.addAudit({
+        type: "voice_transcription_failed",
+        audioPath,
+        error: error.message
+      });
+      return `Voice note saved locally at ${audioPath}, but transcription failed: ${error.message}`;
+    }
   }
 
   return "Unsupported message type.";

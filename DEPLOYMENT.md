@@ -522,6 +522,7 @@ Set:
 ```text
 WHISPER_CPP_BIN=/opt/whisper.cpp/build/bin/whisper-cli
 WHISPER_MODEL_PATH=/opt/whisper.cpp/models/ggml-base.en.bin
+FFMPEG_BIN=ffmpeg
 ```
 
 Restart:
@@ -531,6 +532,84 @@ sudo systemctl restart priseclaw
 ```
 
 Send a short Telegram voice note and check whether the bot responds based on the transcript.
+
+### Voice Transcription Troubleshooting
+
+If the voice note is only saved locally, check these in order.
+
+1. Confirm the service loaded your latest `.env`:
+
+```bash
+cd ~/priseclaw
+grep -E "WHISPER|FFMPEG" .env
+sudo systemctl restart priseclaw
+journalctl -u priseclaw -n 80
+```
+
+2. Confirm `ffmpeg` is installed:
+
+```bash
+which ffmpeg
+ffmpeg -version
+```
+
+If missing:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ffmpeg
+```
+
+3. Confirm the whisper binary exists:
+
+```bash
+ls -l /opt/whisper.cpp/build/bin/whisper-cli
+```
+
+If that file does not exist, search for the actual binary:
+
+```bash
+find /opt/whisper.cpp -type f -name "whisper*"
+```
+
+Some builds may produce a different path. Update `WHISPER_CPP_BIN` in `.env` to the real path.
+
+4. Confirm the model exists:
+
+```bash
+ls -lh /opt/whisper.cpp/models/ggml-base.en.bin
+```
+
+If missing:
+
+```bash
+cd /opt/whisper.cpp
+bash ./models/download-ggml-model.sh base.en
+```
+
+5. Test transcription manually with one saved voice file:
+
+```bash
+cd ~/priseclaw
+ls -lt data/audio
+```
+
+Pick the newest `.oga` or `.ogg` file, then run:
+
+```bash
+ffmpeg -y -i data/audio/<voice-file>.oga -ar 16000 -ac 1 -c:a pcm_s16le /tmp/priseclaw-test.wav
+/opt/whisper.cpp/build/bin/whisper-cli -m /opt/whisper.cpp/models/ggml-base.en.bin -f /tmp/priseclaw-test.wav -otxt -of /tmp/priseclaw-test
+cat /tmp/priseclaw-test.txt
+```
+
+If this manual command fails, fix `ffmpeg`, `WHISPER_CPP_BIN`, or `WHISPER_MODEL_PATH` before testing the bot again.
+
+6. After any `.env` change, restart:
+
+```bash
+sudo systemctl restart priseclaw
+journalctl -u priseclaw -f
+```
 
 ## Privacy Checklist
 
