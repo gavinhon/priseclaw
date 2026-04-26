@@ -92,6 +92,26 @@ export function parseReminder(text, timezone) {
     return { title: title.trim() || "Reminder", dueAt: due.toISOString() };
   }
 
+  const relativeDayMatch = cleaned.match(/\b(today|tomorrow|later)\b/i);
+  if (relativeDayMatch) {
+    const dayWord = relativeDayMatch[1].toLowerCase();
+    const timeMatch = cleaned.match(/\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);
+    const defaultHour = dayWord === "today" || dayWord === "later" ? 18 : 9;
+    const hour = timeMatch ? parseHour(timeMatch[1], timeMatch[3]) : defaultHour;
+    const minute = timeMatch?.[2] ? Number(timeMatch[2]) : 0;
+    const dayOffset = dayWord === "tomorrow" ? 1 : 0;
+    const due = localDateOffset(now, timezone, dayOffset, hour, minute);
+    const title = cleaned
+      .replace(relativeDayMatch[0], " ")
+      .replace(timeMatch?.[0] || "", " ")
+      .replace(/^to\s+/i, "")
+      .replace(/\s+/g, " ")
+      .replace(/\s+([.,!?])$/g, "$1")
+      .replace(/[.,!?]+$/g, "")
+      .trim();
+    return { title: title || "Reminder", dueAt: due.toISOString() };
+  }
+
   const inMatch = cleaned.match(/^in\s+(\d+)\s+(minute|minutes|hour|hours|day|days)\s*(.*)$/i);
   if (inMatch) {
     const [, amountText, unit, title] = inMatch;
@@ -151,6 +171,15 @@ function localDateOffset(now, timezone, dayOffset, hour, minute) {
   date.setDate(date.getDate() + dayOffset);
   date.setHours(hour, minute, 0, 0);
   return date;
+}
+
+function parseHour(hourText, meridiem) {
+  let hour = Number(hourText);
+  if (!meridiem) return hour;
+  const normalized = meridiem.toLowerCase();
+  if (normalized === "pm" && hour < 12) hour += 12;
+  if (normalized === "am" && hour === 12) hour = 0;
+  return hour;
 }
 
 async function askOnlineReasoner(text, config) {
