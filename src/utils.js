@@ -10,6 +10,22 @@ export function appendJsonl(filePath, record) {
   fs.appendFileSync(filePath, `${JSON.stringify(record)}\n`, "utf8");
 }
 
+export function readJsonlFile(filePath) {
+  if (!fs.existsSync(filePath)) return [];
+  return fs
+    .readFileSync(filePath, "utf8")
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+}
+
 export function readJsonFile(filePath, fallback) {
   if (!fs.existsSync(filePath)) return fallback;
   try {
@@ -31,6 +47,15 @@ export function formatDateTime(date, timezone) {
     timeZone: timezone,
     dateStyle: "medium",
     timeStyle: "short"
+  }).format(date);
+}
+
+export function formatDateKey(date, timezone) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
   }).format(date);
 }
 

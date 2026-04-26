@@ -146,6 +146,7 @@ The Pi needs these files and folders:
 
 ```text
 src/
+config/
 scripts/
 package.json
 .env.example
@@ -231,6 +232,7 @@ You should upload:
 
 ```text
 src/
+config/
 scripts/
 package.json
 .env.example
@@ -292,6 +294,7 @@ OPENAI_MODEL=gpt-4.1-mini
 DATA_DIR=./data
 BOT_TIMEZONE=Asia/Singapore
 DAILY_BRIEFING_TIME=08:00
+UPDATE_CHECK_INTERVAL_MINUTES=15
 ```
 
 Save and exit.
@@ -410,6 +413,37 @@ And:
 done 1
 ```
 
+Test recurring reminders:
+
+```text
+remind me every Monday at 9 review goals
+```
+
+Test local calendar:
+
+```text
+schedule lunch with Ben next Tuesday at 12
+calendar
+```
+
+Test local search:
+
+```text
+search Ben
+```
+
+Test Obsidian-compatible Markdown export:
+
+```text
+export obsidian
+```
+
+Markdown files are written under:
+
+```text
+data/obsidian/
+```
+
 ## Phase 9: Optional Online Reasoning API
 
 The bot works without an online model, but it will understand more natural phrasing if you enable one.
@@ -430,7 +464,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 
 Restart the manual bot run, or restart the service if already installed.
 
-Privacy note: when this is enabled, the bot may send your message text or voice transcript to the online API for parsing. Local stored notes, reminder files, and audio files remain on the Pi. The API request uses `store: false`.
+Privacy note: when this is enabled, the bot may send your message text or voice transcript to the online API for parsing. Local stored notes, reminder files, calendar files, and audio files remain on the Pi. The API request uses `store: false`.
 
 ## Phase 10: Install As A Background Service
 
@@ -611,6 +645,80 @@ sudo systemctl restart priseclaw
 journalctl -u priseclaw -f
 ```
 
+## Phase 13: Optional Website, RSS, And GitHub Update Checks
+
+Update checks add bounded autonomy. The bot only checks targets that you explicitly configure.
+
+Edit:
+
+```bash
+nano config/update-checks.json
+```
+
+Supported check types:
+
+- `website`
+- `rss`
+- `github`
+
+Email checks are intentionally not included.
+
+Example GitHub check:
+
+```json
+{
+  "id": "priseclaw-github",
+  "name": "PriseClaw GitHub main branch",
+  "type": "github",
+  "enabled": true,
+  "repo": "gavinhon/priseclaw",
+  "branch": "main",
+  "mode": "commits",
+  "intervalMinutes": 60
+}
+```
+
+Example RSS check:
+
+```json
+{
+  "id": "example-rss",
+  "name": "Example RSS feed",
+  "type": "rss",
+  "enabled": true,
+  "url": "https://example.com/feed.xml",
+  "intervalMinutes": 60
+}
+```
+
+Example website check:
+
+```json
+{
+  "id": "example-website",
+  "name": "Example website",
+  "type": "website",
+  "enabled": true,
+  "url": "https://example.com",
+  "intervalMinutes": 60
+}
+```
+
+After editing:
+
+```bash
+sudo systemctl restart priseclaw
+```
+
+From Telegram:
+
+```text
+update checks
+check updates now
+```
+
+The first run records a baseline. Later runs notify you when a fingerprint changes.
+
 ## Privacy Checklist
 
 Before daily use:
@@ -620,6 +728,7 @@ Before daily use:
 - `.env` is not uploaded publicly
 - `data/` is not uploaded publicly
 - `OPENAI_API_KEY` is set only if you accept sending message text/transcripts to the online API
+- `config/update-checks.json` contains only sites, feeds, and repos you intentionally want monitored
 - Pi login password is changed from default
 - SSH is key-based if possible
 - The bot is not placed in group chats
@@ -634,7 +743,7 @@ Add features in this order:
 4. Obsidian-compatible Markdown export
 5. Voice transcription with `whisper.cpp`
 6. Searchable local note and reminder history
-7. Update check scripts for websites, RSS, email, or GitHub
+7. Update check scripts for websites, RSS, or GitHub
 
 Keep each addition local-first and allowlisted.
 
@@ -692,6 +801,7 @@ sudo systemctl stop priseclaw
 
 ```text
 src/
+config/
 scripts/
 package.json
 README.md

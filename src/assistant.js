@@ -1,3 +1,6 @@
+import { exportObsidian } from "./markdown.js";
+import { searchHistory } from "./search.js";
+import { describeUpdateChecks, runDueUpdateChecks } from "./updateChecks.js";
 import { formatDateTime } from "./utils.js";
 
 const HELP = `I can keep private notes and reminders for you.
@@ -5,7 +8,14 @@ const HELP = `I can keep private notes and reminders for you.
 Try:
 note Ben prefers email
 remind me tomorrow at 9 call Ben
+remind me every Monday at 9 review goals
 remind me on 2026-05-01 at 14:30 submit form
+schedule lunch with Ben next Tuesday at 12
+calendar
+search Ben
+export obsidian
+update checks
+check updates now
 list reminders
 what is my day
 done 3`;
@@ -24,6 +34,29 @@ export async function handleText({ text, storage, config }) {
 
   if (lower === "what is my day" || lower === "today" || lower === "agenda") {
     return dailyBriefing(storage, config);
+  }
+
+  if (lower === "calendar" || lower === "events" || lower === "list events") {
+    return listEvents(storage, config);
+  }
+
+  if (lower === "export obsidian" || lower === "export markdown") {
+    const exported = exportObsidian(storage, config);
+    return `Exported to ${exported.root}: ${exported.noteCount} notes, ${exported.reminderCount} reminders, ${exported.eventCount} events.`;
+  }
+
+  if (lower === "update checks") {
+    return describeUpdateChecks();
+  }
+
+  if (lower === "check updates now") {
+    const notices = await runDueUpdateChecks(storage, config, true);
+    return notices.length ? notices.join("\n\n") : "Update checks ran. No changes detected.";
+  }
+
+  const searchMatch = trimmed.match(/^search\s+(.+)$/i);
+  if (searchMatch) {
+    return searchHistory(storage, searchMatch[1].trim(), config);
   }
 
   const doneMatch = lower.match(/^done\s+(\d+)$/);
@@ -47,6 +80,13 @@ export async function handleText({ text, storage, config }) {
     return `Reminder ${saved.id} saved for ${formatDateTime(new Date(saved.dueAt), config.timezone)}: ${saved.title}`;
   }
 
+  if (/^(schedule|event|calendar|add event)\s+/i.test(trimmed)) {
+    const event = parseEvent(trimmed, config.timezone);
+    if (!event) return "I could not confidently parse the event time. Try: schedule lunch with Ben next Tuesday at 12.";
+    const saved = storage.addEvent(event);
+    return `Event ${saved.id} saved for ${formatDateTime(new Date(saved.startsAt), config.timezone)}: ${saved.title}`;
+  }
+
   const apiAction = await askOnlineReasoner(trimmed, config).catch((error) => {
     storage.addAudit({ type: "online_reasoning_failed", error: error.message });
     return null;
@@ -68,6 +108,9 @@ export async function handleText({ text, storage, config }) {
 export function parseReminder(text, timezone) {
   const cleaned = text.replace(/^remind(er)?\s*(me)?\s*/i, "").trim();
   const now = new Date();
+
+  const recurring = parseRecurringReminder(cleaned, now, timezone);
+  if (recurring) return recurring;
 
   const isoMatch = cleaned.match(/(?:on\s+)?(\d{4}-\d{2}-\d{2})(?:\s+at\s+|\s+)(\d{1,2})(?::(\d{2}))?\s*(.*)$/i);
   if (isoMatch) {
@@ -151,8 +194,13 @@ export function dueReminders(storage) {
   if (due.length === 0) return [];
 
   for (const reminder of due) {
-    reminder.status = "sent";
     reminder.sentAt = new Date().toISOString();
+    if (reminder.recurrence) {
+      reminder.lastDueAt = reminder.dueAt;
+      reminder.dueAt = nextRecurringDue(reminder.dueAt, reminder.recurrence);
+    } else {
+      reminder.status = "sent";
+    }
   }
   storage.saveReminders(reminders);
   return due;
@@ -165,16 +213,113 @@ export function dailyBriefing(storage, config) {
     .sort((a, b) => Date.parse(a.dueAt) - Date.parse(b.dueAt))
     .slice(0, 8);
 
-  if (pending.length === 0) return "You have no pending reminders.";
+  const events = storage
+    .listEvents()
+    .filter((event) => Date.parse(event.startsAt) >= Date.now())
+    .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))
+    .slice(0, 5);
 
-  const lines = pending.map(
+  if (pending.length === 0 && events.length === 0) return "You have no pending reminders or upcoming local calendar events.";
+
+  const reminderLines = pending.map(
     (reminder) => `${reminder.id}. ${formatDateTime(new Date(reminder.dueAt), config.timezone)} - ${reminder.title}`
   );
-  return `Your upcoming reminders:\n${lines.join("\n")}`;
+  const eventLines = events.map(
+    (event) => `${event.id}. ${formatDateTime(new Date(event.startsAt), config.timezone)} - ${event.title}`
+  );
+  return [
+    reminderLines.length ? `Upcoming reminders:\n${reminderLines.join("\n")}` : "",
+    eventLines.length ? `Local calendar:\n${eventLines.join("\n")}` : ""
+  ].filter(Boolean).join("\n\n");
 }
 
 function listReminders(storage, config) {
   return dailyBriefing(storage, config);
+}
+
+function parseEvent(text, timezone) {
+  const cleaned = text.replace(/^(schedule|event|calendar|add event)\s+/i, "").trim();
+  const parsed = parseReminder(`remind me ${cleaned}`, timezone);
+  if (!parsed) return null;
+  return {
+    title: parsed.title,
+    startsAt: parsed.dueAt,
+    endsAt: new Date(Date.parse(parsed.dueAt) + 60 * 60 * 1000).toISOString(),
+    source: "telegram"
+  };
+}
+
+function listEvents(storage, config) {
+  const events = storage
+    .listEvents()
+    .filter((event) => Date.parse(event.endsAt || event.startsAt) >= Date.now())
+    .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))
+    .slice(0, 10);
+  if (events.length === 0) return "Your local calendar has no upcoming events.";
+  const lines = events.map(
+    (event) => `${event.id}. ${formatDateTime(new Date(event.startsAt), config.timezone)} - ${event.title}`
+  );
+  return `Upcoming local calendar events:\n${lines.join("\n")}`;
+}
+
+function parseRecurringReminder(cleaned, now, timezone) {
+  const normalized = cleaned.replace(/^to\s+/i, "");
+  const dailyMatch = normalized.match(/^every\s+(day|daily)(?:\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?)?\s+(.+)$/i);
+  if (dailyMatch) {
+    const [, , hourText = "9", minuteText = "00", meridiem, title] = dailyMatch;
+    const due = nextDailyDue(now, timezone, parseHour(hourText, meridiem), Number(minuteText));
+    return {
+      title: title.trim(),
+      dueAt: due.toISOString(),
+      recurrence: { frequency: "daily", interval: 1 }
+    };
+  }
+
+  const weeklyMatch = normalized.match(/^every\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?)?\s+(.+)$/i);
+  if (weeklyMatch) {
+    const [, weekday, hourText = "9", minuteText = "00", meridiem, title] = weeklyMatch;
+    const hour = parseHour(hourText, meridiem);
+    const minute = Number(minuteText);
+    let dayOffset = daysUntilWeekday(now, timezone, weekday.toLowerCase(), false);
+    let due = localDateOffset(now, timezone, dayOffset, hour, minute);
+    if (Date.parse(due.toISOString()) <= Date.now()) {
+      dayOffset = dayOffset === 0 ? 7 : dayOffset;
+      due = localDateOffset(now, timezone, dayOffset, hour, minute);
+    }
+    return {
+      title: title.trim(),
+      dueAt: due.toISOString(),
+      recurrence: { frequency: "weekly", interval: 1, weekday: weekday.toLowerCase() }
+    };
+  }
+
+  return null;
+}
+
+function nextDailyDue(now, timezone, hour, minute) {
+  let due = localDateOffset(now, timezone, 0, hour, minute);
+  if (Date.parse(due.toISOString()) <= Date.now()) {
+    due = localDateOffset(now, timezone, 1, hour, minute);
+  }
+  return due;
+}
+
+function nextRecurringDue(dueAt, recurrence) {
+  const due = new Date(dueAt);
+  if (recurrence.frequency === "daily") {
+    due.setDate(due.getDate() + Number(recurrence.interval || 1));
+  } else if (recurrence.frequency === "weekly") {
+    due.setDate(due.getDate() + 7 * Number(recurrence.interval || 1));
+  } else if (recurrence.frequency === "monthly") {
+    due.setMonth(due.getMonth() + Number(recurrence.interval || 1));
+  }
+  while (due.getTime() <= Date.now()) {
+    if (recurrence.frequency === "daily") due.setDate(due.getDate() + Number(recurrence.interval || 1));
+    else if (recurrence.frequency === "weekly") due.setDate(due.getDate() + 7 * Number(recurrence.interval || 1));
+    else if (recurrence.frequency === "monthly") due.setMonth(due.getMonth() + Number(recurrence.interval || 1));
+    else break;
+  }
+  return due.toISOString();
 }
 
 function localDateOffset(now, timezone, dayOffset, hour, minute) {

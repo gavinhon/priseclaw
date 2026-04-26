@@ -39,7 +39,8 @@ export function getConfig(rootDir) {
     openaiBaseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
     whisperBin: process.env.WHISPER_CPP_BIN || "",
     whisperModelPath: process.env.WHISPER_MODEL_PATH || "",
-    ffmpegBin: process.env.FFMPEG_BIN || "ffmpeg"
+    ffmpegBin: process.env.FFMPEG_BIN || "ffmpeg",
+    updateCheckIntervalMinutes: Number(process.env.UPDATE_CHECK_INTERVAL_MINUTES || "15")
   };
 }
 

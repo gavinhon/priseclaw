@@ -1,4 +1,5 @@
 import { dailyBriefing, dueReminders } from "./assistant.js";
+import { runDueUpdateChecks } from "./updateChecks.js";
 import { getLocalParts, todayKey } from "./utils.js";
 
 export class Scheduler {
@@ -7,6 +8,7 @@ export class Scheduler {
     this.config = config;
     this.telegram = telegram;
     this.lastBriefingKey = "";
+    this.updateCheckRunning = false;
   }
 
   start() {
@@ -21,6 +23,7 @@ export class Scheduler {
   async tick() {
     await this.sendDueReminders();
     await this.sendDailyBriefing();
+    await this.sendUpdateCheckNotices();
   }
 
   async sendDueReminders() {
@@ -38,5 +41,18 @@ export class Scheduler {
 
     this.lastBriefingKey = key;
     await this.telegram.broadcastAllowed(dailyBriefing(this.storage, this.config));
+  }
+
+  async sendUpdateCheckNotices() {
+    if (this.updateCheckRunning) return;
+    this.updateCheckRunning = true;
+    try {
+      const notices = await runDueUpdateChecks(this.storage, this.config);
+      for (const notice of notices) {
+        await this.telegram.broadcastAllowed(notice);
+      }
+    } finally {
+      this.updateCheckRunning = false;
+    }
   }
 }

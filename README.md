@@ -35,7 +35,7 @@ Telegram itself can still see messages passing through Telegram. If online reaso
 
 For the detailed checklist, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
-Yes, deploy the whole project folder to the Raspberry Pi. The Pi needs the `src/`, `scripts/`, `package.json`, `.env.example`, `README.md`, `DEPLOYMENT.md`, and `GIST.md` files. The `data/` folder is created on the Pi when the bot runs.
+Yes, deploy the whole project folder to the Raspberry Pi. The Pi needs the `src/`, `config/`, `scripts/`, `package.json`, `.env.example`, `README.md`, `DEPLOYMENT.md`, and `GIST.md` files. The `data/` folder is created on the Pi when the bot runs.
 
 On the Pi:
 
@@ -72,7 +72,14 @@ Use natural language. The parser is intentionally conservative.
 ```text
 note Ben prefers email, not calls
 remind me tomorrow at 9 call Ben about the contract
+remind me every Monday at 9 review goals
 remind me on 2026-05-01 at 14:30 submit the form
+schedule lunch with Ben next Tuesday at 12
+calendar
+search Ben
+export obsidian
+update checks
+check updates now
 what is my day
 list reminders
 done 3
@@ -81,6 +88,19 @@ help
 
 Voice notes are downloaded locally. If `WHISPER_CPP_BIN` and `WHISPER_MODEL_PATH` are configured, they are transcribed and processed like text.
 
+## Bounded Autonomy
+
+PriseClaw can do scheduled work on its own, but only from explicit local configuration:
+
+- one-time and recurring reminders
+- daily briefing
+- local calendar events in `data/events.json`
+- Obsidian-compatible Markdown export under `data/obsidian/`
+- local search across notes, reminders, and events
+- optional website, RSS, and GitHub update checks from `config/update-checks.json`
+
+It does not access email, message other people, or run arbitrary tools.
+
 ## Data Files
 
 ```text
@@ -88,8 +108,11 @@ data/
   messages.jsonl
   notes.jsonl
   reminders.json
+  events.json
+  update-state.json
   audit.jsonl
   audio/
+  obsidian/
 ```
 
 Back up the `data/` directory if you want to preserve history.

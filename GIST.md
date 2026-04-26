@@ -28,6 +28,7 @@ The design is inspired by NanoClaw's Raspberry Pi assistant idea, but simplified
 - simple deployment scripts
 - online reasoning API optional
 - no local LLM requirement
+- bounded autonomy through local calendar, recurring reminders, Markdown export, search, and configured update checks
 
 ---
 
@@ -82,6 +83,11 @@ Rule-based parser
 Local actions
   - save note
   - create reminder
+  - roll recurring reminders forward
+  - save local calendar event
+  - export Markdown
+  - search local history
+  - check configured website/RSS/GitHub updates
   - complete reminder
   - produce daily briefing
           |
@@ -101,6 +107,7 @@ Telegram reply / reminder
 | systemd | Run continuously on Raspberry Pi |
 | `whisper.cpp` | Optional local voice transcription |
 | OpenAI Responses API | Optional online reasoning |
+| Local config JSON | Website, RSS, and GitHub update checks |
 | Raspberry Pi OS | Target host |
 
 There is intentionally no database server, Docker requirement, or local LLM requirement.
@@ -136,6 +143,7 @@ Supported examples:
 remind me in 10 minutes check the laundry
 remind me tomorrow at 9 call Ben
 remind me on 2026-05-01 at 14:30 submit the form
+remind me every Monday at 9 review goals
 ```
 
 Reminders are stored locally in:
@@ -165,6 +173,37 @@ The Pi does not need to run a model.
 
 If `OPENAI_API_KEY` is configured, PriseClaw can ask the online API to interpret more natural instructions and return structured actions.
 
+### Local Calendar
+
+```text
+schedule lunch with Ben next Tuesday at 12
+calendar
+```
+
+Events are stored in `data/events.json`.
+
+### Obsidian Export
+
+```text
+export obsidian
+```
+
+Markdown files are written under `data/obsidian/`.
+
+### Local Search
+
+```text
+search Ben
+```
+
+Search covers local notes, reminders, and calendar events.
+
+### Update Checks
+
+Website, RSS, and GitHub checks are configured in `config/update-checks.json`.
+
+Email access is intentionally not included.
+
 ---
 
 ## Project Structure
@@ -177,8 +216,14 @@ src/
   scheduler.js       due reminders and daily briefing
   storage.js         local files
   transcription.js   optional whisper.cpp integration
+  markdown.js        Obsidian-compatible export
+  search.js          local search
+  updateChecks.js    website/RSS/GitHub change checks
   config.js          .env loading
   utils.js           helpers
+
+config/
+  update-checks.json
 
 scripts/
   install-rpi.sh
@@ -190,8 +235,11 @@ data/
   messages.jsonl
   notes.jsonl
   reminders.json
+  events.json
+  update-state.json
   audit.jsonl
   audio/
+  obsidian/
 ```
 
 ---
@@ -297,6 +345,11 @@ Implemented:
 - discovery mode for finding your Telegram user ID
 - local message, note, reminder, and audit storage
 - one-time reminders
+- recurring reminders
+- local calendar events
+- Obsidian-compatible Markdown export
+- local search across notes, reminders, and events
+- website, RSS, and GitHub update checks
 - daily briefing
 - optional voice-note download
 - optional `whisper.cpp` transcription
@@ -306,9 +359,6 @@ Implemented:
 
 Planned next:
 
-- recurring reminders
-- better date parsing
-- searchable local history
-- calendar export/import
-- update-check scripts
+- calendar import/export refinements
+- richer natural-language date parsing
 - encrypted backup helper

@@ -1,0 +1,28 @@
+[
+  {
+    "id": "priseclaw-github",
+    "name": "PriseClaw GitHub main branch",
+    "type": "github",
+    "enabled": false,
+    "repo": "gavinhon/priseclaw",
+    "branch": "main",
+    "mode": "commits",
+    "intervalMinutes": 60
+  },
+  {
+    "id": "example-rss",
+    "name": "Example RSS feed",
+    "type": "rss",
+    "enabled": false,
+    "url": "https://example.com/feed.xml",
+    "intervalMinutes": 60
+  },
+  {
+    "id": "example-website",
+    "name": "Example website",
+    "type": "website",
+    "enabled": false,
+    "url": "https://example.com",
+    "intervalMinutes": 60
+  }
+]
