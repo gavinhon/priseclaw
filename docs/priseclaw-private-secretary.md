@@ -70,47 +70,18 @@ sudo apt-get upgrade -y
 sudo apt-get install -y git curl ca-certificates nano unzip rsync docker-compose
 ```
 
-If the repo is public, clone this fork:
+Clone this fork:
 
 ```bash
 git clone https://github.com/gavinhon/priseclaw.git
 cd priseclaw
 ```
 
-If the repo is private or you are copying it over as the project owner, upload the project folder or a zip archive to the Pi and place it at:
-
-```text
-/home/ghon/priseclaw
-```
-
-For FTP/SFTP deployments, copy the whole project folder contents except local dependency/build caches:
-
-```text
-copy:
-  package.json
-  pnpm-lock.yaml
-  nanoclaw.sh
-  setup.sh
-  setup/
-  src/
-  container/
-  docs/
-  data/env/        # only if you intentionally manage env here
-  .env            # private owner-only file, never commit this
-
-do not copy:
-  node_modules/
-  dist/
-  logs/
-  .git/           # optional; omit when deploying an archive
-```
-
-After copying, SSH into the Pi and run:
+Prepare local secrets:
 
 ```bash
-cd /home/ghon/priseclaw
-find . -type f \( -name '*.sh' -o -name 'nanoclaw.sh' -o -path './.husky/*' -o -path './.claude/skills/*/scripts/*' \) -print0 | xargs -0 sed -i 's/\r$//'
-chmod +x nanoclaw.sh setup.sh setup/*.sh container/*.sh 2>/dev/null || true
+cp .env.example .env
+nano .env
 corepack enable
 corepack prepare pnpm@10.33.0 --activate
 pnpm install

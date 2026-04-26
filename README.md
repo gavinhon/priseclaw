@@ -6,7 +6,7 @@
   An AI assistant that runs agents securely in their own containers. Lightweight, built to be easily understood and completely customized for your needs.
 </p>
 
-> **PriseClaw fork:** this repository is now rebased around NanoClaw and customized toward a private Raspberry Pi personal secretary. Start with the upstream NanoClaw setup below, then read [docs/priseclaw-private-secretary.md](docs/priseclaw-private-secretary.md), [docs/priseclaw-customizations.md](docs/priseclaw-customizations.md), and [docs/priseclaw-migration.md](docs/priseclaw-migration.md).
+> **PriseClaw fork:** this is a reproducible NanoClaw fork for a private Raspberry Pi personal secretary. It includes Telegram, OpenAI via OpenCode, and a secretary profile layer. Start with [docs/fresh-setup.md](docs/fresh-setup.md), then see [docs/priseclaw-customizations.md](docs/priseclaw-customizations.md) for the small overlay this fork keeps on top of upstream NanoClaw.
 
 <p align="center">
   <a href="https://nanoclaw.dev">nanoclaw.dev</a>&nbsp; • &nbsp;
@@ -16,6 +16,39 @@
   <a href="https://discord.gg/VDdww8qS42"><img src="https://img.shields.io/discord/1470188214710046894?label=Discord&logo=discord&v=2" alt="Discord" valign="middle"></a>&nbsp; • &nbsp;
   <a href="repo-tokens"><img src="repo-tokens/badge.svg" alt="repo tokens" valign="middle"></a>
 </p>
+
+---
+
+## PriseClaw Quick Start
+
+On a clean Raspberry Pi:
+
+```bash
+sudo apt-get update
+sudo apt-get upgrade -y
+sudo apt-get install -y git curl ca-certificates nano unzip rsync docker-compose
+
+git clone https://github.com/gavinhon/priseclaw.git
+cd priseclaw
+cp .env.example .env
+nano .env
+
+bash nanoclaw.sh
+```
+
+Put your real `TELEGRAM_BOT_TOKEN` and `OPENAI_API_KEY` into `.env`. Do not commit `.env`.
+
+PriseClaw setup should use:
+
+```env
+NANOCLAW_AGENT_PROVIDER=opencode
+OPENCODE_PROVIDER=openai
+ANTHROPIC_BASE_URL=https://api.openai.com/v1
+```
+
+Telegram is already included in this fork, so setup should not need to fetch a channel adapter branch just to connect `@priseclaw_bot`.
+
+Full reproducible instructions: [docs/fresh-setup.md](docs/fresh-setup.md).
 
 ---
 

@@ -5,7 +5,7 @@ PriseClaw should stay a small, maintainable fork of NanoClaw.
 The rule of thumb:
 
 - upstream NanoClaw owns the runtime
-- PriseClaw owns only the OpenAI provider default, private-secretary profile, Raspberry Pi deployment notes, and repo hygiene needed for Linux setup
+- PriseClaw owns only the Telegram-first channel choice, OpenAI provider default, private-secretary profile, Raspberry Pi deployment notes, and repo hygiene needed for Linux setup
 - real secrets live only in `.env` on the Raspberry Pi
 
 ## Upstream Base
@@ -35,6 +35,7 @@ These files are intentionally PriseClaw-specific:
 
 ```text
 docs/priseclaw-customizations.md
+docs/fresh-setup.md
 docs/priseclaw-private-secretary.md
 docs/priseclaw-migration.md
 container/skills/private-secretary/SKILL.md
@@ -61,9 +62,18 @@ container/agent-runner/bun.lock
 container/agent-runner/src/providers/index.ts
 container/agent-runner/src/providers/opencode.ts
 container/agent-runner/src/providers/mcp-to-opencode.ts
+src/channels/index.ts
+src/channels/telegram.ts
+src/channels/telegram-pairing.ts
+src/channels/telegram-markdown-sanitize.ts
+setup/index.ts
+package.json
+pnpm-lock.yaml
 ```
 
 The OpenCode provider files are copied from NanoClaw's `providers` branch, then PriseClaw adds OpenAI-friendly defaults and setup behavior.
+
+The Telegram channel files are copied from NanoClaw's `channels` branch and committed because Telegram is PriseClaw's primary interface. This avoids requiring a fresh Raspberry Pi setup to dynamically fetch channel code during first setup.
 
 ## OpenAI Instead Of Claude
 
