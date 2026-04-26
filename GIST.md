@@ -211,7 +211,7 @@ sudo apt-get install -y nodejs
 Project setup:
 
 ```bash
-git clone <your-repo-url> priseclaw
+git clone https://github.com/gavinhon/priseclaw.git
 cd priseclaw
 cp .env.example .env
 nano .env
@@ -312,4 +312,3 @@ Planned next:
 - calendar export/import
 - update-check scripts
 - encrypted backup helper
-

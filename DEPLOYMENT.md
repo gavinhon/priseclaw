@@ -169,7 +169,7 @@ Use this if the project is already in a GitHub repo.
 If this project is in GitHub:
 
 ```bash
-git clone <your-repo-url> priseclaw
+git clone https://github.com/gavinhon/priseclaw.git
 cd priseclaw
 ```
 
@@ -186,15 +186,13 @@ sudo apt-get install -y unzip
 Download the ZIP from GitHub:
 
 ```bash
-wget https://github.com/<owner>/<repo>/archive/refs/heads/main.zip -O priseclaw.zip
+wget https://github.com/gavinhon/priseclaw/archive/refs/heads/main.zip -O priseclaw.zip
 unzip priseclaw.zip
-mv <repo>-main priseclaw
+mv priseclaw-main priseclaw
 cd priseclaw
 ```
 
-Replace `<owner>` and `<repo>` with the actual GitHub owner and repository name.
-
-If the default branch is not `main`, replace `main.zip` and `<repo>-main` with the correct branch name.
+If the default branch is not `main`, replace `main.zip` and `priseclaw-main` with the correct branch name.
 
 ### Option C: Copy From Windows To The Pi
 
@@ -210,6 +208,63 @@ Then SSH into the Pi:
 ssh pi@raspberrypi.local
 cd ~/priseclaw
 ```
+
+### Option D: Upload By FTP/SFTP
+
+Use this if you have an FTP/SFTP client such as FileZilla, WinSCP, Cyberduck, or the file transfer feature in your SSH client.
+
+Recommended destination on the Pi:
+
+```text
+/home/pi/priseclaw
+```
+
+If your Pi username is not `pi`, use:
+
+```text
+/home/<your-pi-username>/priseclaw
+```
+
+Upload the whole project folder contents into that directory.
+
+You should upload:
+
+```text
+src/
+scripts/
+package.json
+.env.example
+README.md
+DEPLOYMENT.md
+GIST.md
+.gitignore
+```
+
+You do not need to upload:
+
+```text
+data/
+.env
+node_modules/
+*.log
+```
+
+Create the destination folder on the Pi first if needed:
+
+```bash
+mkdir -p ~/priseclaw
+```
+
+After upload, SSH into the Pi and run:
+
+```bash
+cd ~/priseclaw
+chmod +x scripts/*.sh
+cp .env.example .env
+nano .env
+```
+
+Then continue with Phase 6.
 
 Make sure the scripts are executable:
 
@@ -503,6 +558,149 @@ Add features in this order:
 7. Update check scripts for websites, RSS, email, or GitHub
 
 Keep each addition local-first and allowlisted.
+
+## Raspberry Pi Maintenance
+
+Use these commands after the bot is installed as a systemd service.
+
+### Check Bot Status
+
+```bash
+sudo systemctl status priseclaw
+```
+
+### Watch Live Logs
+
+```bash
+journalctl -u priseclaw -f
+```
+
+### Restart After Changing `.env`
+
+```bash
+sudo systemctl restart priseclaw
+```
+
+### Stop Or Start The Bot
+
+```bash
+sudo systemctl stop priseclaw
+sudo systemctl start priseclaw
+```
+
+### Update The App From GitHub
+
+If you cloned from GitHub:
+
+```bash
+cd ~/priseclaw
+git pull
+npm run check
+sudo systemctl restart priseclaw
+```
+
+### Update The App When Using FTP/SFTP
+
+If you uploaded files manually:
+
+1. Stop the service:
+
+```bash
+sudo systemctl stop priseclaw
+```
+
+2. Upload the new versions of:
+
+```text
+src/
+scripts/
+package.json
+README.md
+DEPLOYMENT.md
+GIST.md
+```
+
+3. Do not overwrite these unless you intentionally want to replace your private data:
+
+```text
+.env
+data/
+```
+
+4. SSH into the Pi and run:
+
+```bash
+cd ~/priseclaw
+chmod +x scripts/*.sh
+npm run check
+sudo systemctl start priseclaw
+```
+
+### Back Up Private Data
+
+Run this from the project folder:
+
+```bash
+cd ~/priseclaw
+tar -czf ~/priseclaw-backup-$(date +%Y-%m-%d).tar.gz data .env
+```
+
+Copy the backup file off the Pi and store it somewhere private.
+
+### Check Disk Usage
+
+```bash
+df -h
+du -sh ~/priseclaw/data
+du -sh ~/priseclaw/data/audio
+```
+
+Voice notes can grow over time. If you do not need old audio files, archive them first, then remove only files you are sure you no longer need.
+
+### Keep The Pi Updated
+
+Run occasionally:
+
+```bash
+sudo apt-get update
+sudo apt-get upgrade -y
+sudo reboot
+```
+
+After reboot:
+
+```bash
+sudo systemctl status priseclaw
+```
+
+### Health Check Routine
+
+Weekly:
+
+```bash
+sudo systemctl status priseclaw
+journalctl -u priseclaw -n 80
+df -h
+du -sh ~/priseclaw/data
+```
+
+Monthly:
+
+```bash
+cd ~/priseclaw
+npm run check
+tar -czf ~/priseclaw-backup-$(date +%Y-%m-%d).tar.gz data .env
+```
+
+### Recommended Folder Ownership
+
+The app should live in your normal Pi user's home folder:
+
+```text
+/home/pi/priseclaw
+```
+
+The systemd service should run as that same user. Avoid running the bot as `root`.
 
 ## Clean Pi Dependency Summary
 

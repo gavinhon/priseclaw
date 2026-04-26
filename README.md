@@ -40,7 +40,7 @@ Yes, deploy the whole project folder to the Raspberry Pi. The Pi needs the `src/
 On the Pi:
 
 ```bash
-git clone <your-repo-url> priseclaw
+git clone https://github.com/gavinhon/priseclaw.git
 cd priseclaw
 cp .env.example .env
 nano .env
@@ -56,6 +56,14 @@ sudo systemctl status priseclaw
 ```
 
 If someone downloads this repo as a ZIP instead of using GitHub clone, unzip the full folder on the Pi, then follow [DEPLOYMENT.md](DEPLOYMENT.md) from Phase 5 onward.
+
+FTP/SFTP upload is also fine. Create this folder on the Pi:
+
+```text
+/home/pi/priseclaw
+```
+
+Upload the project files there. Do not upload or overwrite `data/`, `.env`, `node_modules/`, or `*.log` during normal updates. Full FTP/SFTP instructions and Raspberry Pi maintenance commands are in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Commands
 
