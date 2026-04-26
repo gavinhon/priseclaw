@@ -112,6 +112,24 @@ export function parseReminder(text, timezone) {
     return { title: title || "Reminder", dueAt: due.toISOString() };
   }
 
+  const weekdayMatch = cleaned.match(/\b(next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
+  if (weekdayMatch) {
+    const weekday = weekdayMatch[2].toLowerCase();
+    const timeMatch = cleaned.match(/\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);
+    const hour = timeMatch ? parseHour(timeMatch[1], timeMatch[3]) : 9;
+    const minute = timeMatch?.[2] ? Number(timeMatch[2]) : 0;
+    const dayOffset = daysUntilWeekday(now, timezone, weekday, Boolean(weekdayMatch[1]));
+    const due = localDateOffset(now, timezone, dayOffset, hour, minute);
+    const title = cleaned
+      .replace(weekdayMatch[0], " ")
+      .replace(timeMatch?.[0] || "", " ")
+      .replace(/^to\s+/i, "")
+      .replace(/\s+/g, " ")
+      .replace(/[.,!?]+$/g, "")
+      .trim();
+    return { title: title || "Reminder", dueAt: due.toISOString() };
+  }
+
   const inMatch = cleaned.match(/^in\s+(\d+)\s+(minute|minutes|hour|hours|day|days)\s*(.*)$/i);
   if (inMatch) {
     const [, amountText, unit, title] = inMatch;
@@ -180,6 +198,41 @@ function parseHour(hourText, meridiem) {
   if (normalized === "pm" && hour < 12) hour += 12;
   if (normalized === "am" && hour === 12) hour = 0;
   return hour;
+}
+
+function daysUntilWeekday(now, timezone, weekday, explicitNext) {
+  const weekdays = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6
+  };
+  const current = weekdayNumber(now, timezone);
+  const target = weekdays[weekday];
+  let offset = (target - current + 7) % 7;
+  if (offset === 0) offset = explicitNext ? 7 : 0;
+  return offset;
+}
+
+function weekdayNumber(now, timezone) {
+  const name = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    weekday: "long"
+  })
+    .format(now)
+    .toLowerCase();
+  return {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6
+  }[name];
 }
 
 async function askOnlineReasoner(text, config) {
