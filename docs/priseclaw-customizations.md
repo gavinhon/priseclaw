@@ -85,8 +85,8 @@ Required local `.env` values:
 OPENAI_API_KEY=sk-...
 NANOCLAW_AGENT_PROVIDER=opencode
 OPENCODE_PROVIDER=openai
-OPENCODE_MODEL=openai/gpt-4.1-mini
-OPENCODE_SMALL_MODEL=openai/gpt-4.1-mini
+OPENCODE_MODEL=openai/gpt-5.4-mini
+OPENCODE_SMALL_MODEL=openai/gpt-5.4-mini
 ANTHROPIC_BASE_URL=https://api.openai.com/v1
 ```
 
